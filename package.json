@@ -1,0 +1,36 @@
+{
+  "name": "moxtra-bot-sdk",
+  "version": "1.0.0",
+  "description": "Moxtra Bot SDK",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Moxtra/moxtra-bot-sdk-nodejs.git"
+  },
+  "keywords": [
+    "bot",
+    "chatbot",
+    "chat",
+    "sdk",
+    "moxtra"
+  ],
+  "homepage": "https://github.com/Moxtra/moxtra-bot-sdk-nodejs#readme",
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "cookie-parser": "^1.4.3",
+    "crypto": "0.0.3",
+    "eventemitter3": "^1.2.0",
+    "express": "^4.14.0",
+    "jsonwebtoken": "^7.3.0",
+    "node-fetch": "^1.5.3",
+    "simple-oauth2": "^1.1.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.5.3",
+    "sinon": "^1.17.4"
+  }
+}
