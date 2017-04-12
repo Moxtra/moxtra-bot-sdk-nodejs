@@ -4,7 +4,7 @@
 [![David](https://img.shields.io/david/strongloop/express.svg)](https://github.com/Moxtra/moxtra-bot-sdk-nodejs.git)
 [![Packagist](https://img.shields.io/packagist/l/doctrine/orm.svg)](https://spdx.org/licenses/MIT)
 
-Moxtra Bot SDK is to ease the Bot development on Moxtra's power messenger platform. The design allows developers to focus on application logic instead of on APIs for sending and receiving messages.
+Moxtra Bot SDK will ease and streamline the Bot development for Moxtra's business collaboration platform. The design allows developers to focus on application logic instead of APIs for sending and receiving data payload.
 
 ```js
 const MoxtraBot = require('moxtra-bot-sdk');
@@ -76,7 +76,7 @@ git clone https://github.com/Moxtra/moxtra-bot-sdk-nodejs.git
 
 ## Getting Started
 
-- After installed MoxtraBot via NPM, create a new bot instance using your `verify_token` and `client_secret` obtained from your [MoxtraBot configuration](https://developer.moxtra.com/nextbots):
+- After MoxtraBot is installed via NPM, create a new bot instance using your `verify_token` and `client_secret` obtained from your [MoxtraBot configuration](https://developer.moxtra.com/nextbots):
 
 ```js
 const MoxtraBot = require('moxtra-bot-sdk');
@@ -271,7 +271,7 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
-const MoxtraBot = require('moxtrabot-sdk');
+const MoxtraBot = require('moxtra-bot-sdk');
 
 const bot = new MoxtraBot({
   verify_token: 'YOUR_VERIFY_TOKEN',
@@ -296,11 +296,11 @@ app.post('/webhooks', (req, res, next) => {
 
 - Link Moxtra account with the 3rd party service through Account Linking flow:
 >1. User sends a request to Bot, which requires access to a 3rd party service that needs user's authorization. Bot does not have prior user account linking info with the 3rd party service.
->2. Bot sends `ACCOUNT_LINK` button back to Moxtra chat
->3. User clicks the button and a [JSON web token](https://en.wikipedia.org/wiki/JSON_Web_Token) sends back to Bot via the `GET` method
->4. Bot verifies the token using `client_secret` as the key and decodes the token; Bot obtains *user_id*, *username*, and *binder_id* via handling the *bot.on('account_link')* event
->5. Bot needs to check whether the *user_id* having the corresponding *access_token* from the 3rd party service in case `ACCOUNT_LINK` button might be tapped more than once or by different users in a group chat. If no, next OAuth2 authorization flow would then follows
->6. After obtained the *access_token* from the 3rd party service, Bot needs to complete the original request
+>2. Bot sends `ACCOUNT_LINK` button back to Moxtra chat.
+>3. User clicks the button and a [JSON web token](https://en.wikipedia.org/wiki/JSON_Web_Token) sends back to Bot via the `GET` method.
+>4. Bot verifies the token using `client_secret` as the key and decodes the token; Bot obtains *user_id*, *username*, and *binder_id* via handling the *bot.on('account_link')* event.
+>5. Bot needs to check whether the *user_id* having the corresponding *access_token* from the 3rd party service in case `ACCOUNT_LINK` button might be tapped more than once or by different users in a group chat. If no, next OAuth2 authorization flow would then follows.
+>6. After obtaining the *access_token* from the 3rd party service, Bot needs to complete the original request.
 
 - Add `ACCOUNT_LINK` button:
 ```js
@@ -756,7 +756,7 @@ This is the root API for sending API request to Moxtra. `access_token` in the `c
 
 | Param | Type | Required |
 |:------|:-----|:---------|
-| `message` | string | `Y` |
+| `body` | string | `Y` |
 | `path` | string | `N`, default is '/messages' |
 | `method` | string | `N`, default is 'POST' |
 
