@@ -648,7 +648,7 @@ const options = {
 Send a text message to Binder along with optional `buttons` and `options`.
 
 | Param | Type | Required |
-|:------|:-----|:--------|:---------|
+|:------|:-----|:---------|
 | `text` | string | `Y` |
 | `buttons` | string, button or mixed array | `N` |
 | `options` | options object | `N` |
