@@ -1,6 +1,6 @@
 {
   "name": "moxtra-bot-sdk",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Moxtra Bot SDK",
   "main": "index.js",
   "scripts": {
