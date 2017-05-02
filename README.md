@@ -1,6 +1,6 @@
 # Moxtra Bot SDK
 
-[![npm](https://img.shields.io/badge/npm-1.0.2-orange.svg)](https://www.npmjs.com/package/moxtra-bot-sdk)
+[![npm](https://img.shields.io/badge/npm-1.0.3-orange.svg)](https://www.npmjs.com/package/moxtra-bot-sdk)
 [![David](https://img.shields.io/david/strongloop/express.svg)](https://github.com/Moxtra/moxtra-bot-sdk-nodejs.git)
 [![Packagist](https://img.shields.io/packagist/l/doctrine/orm.svg)](https://spdx.org/licenses/MIT)
 
@@ -28,7 +28,7 @@ bot.on('message', (chat) => {
 
 ## Core Concepts
 
-- Bot verification flow: before saving bot configuration during bot creation, a verification request with message_type=bot_verify&verify_token='YOUR_VERIFY_TOKEN'&  
+- Bot verification flow: before saving bot configuration during bot creation, a JSONP verification request with message_type=bot_verify&verify_token='YOUR_VERIFY_TOKEN'&  
 bot_challenge='RANDOM_STRING' sending to the configured verify_url. To complete the bot creation, this request expects the same 'RANDOM_STRING' gets returned.  
 
 - Binder based bot installation: each received message event has the corresponding *binder_id* and *access_token* for reply, which are encapsulated in the `Chat` object  
