@@ -160,7 +160,7 @@ bot.hears([/(schedule|plan|have)? meet/i, 'meeting together'], (chat) => {
 >chat.sendJSON(fields);  
 >```
 >
->- Upload File or Add Audio Comment
+>- Upload File or Add Audio Comment for audio file (audio/x-m4a, audio/3gpp)
 >```js
 >var options = {};
 >options.file_path = `${__dirname}/examples/Upload/start.png`;
@@ -628,7 +628,7 @@ A typical `Chat` instance has the following structure:
 
 #### `options`
 
-`options` is an object that specify on-demand action type, fields_template array - which is used in `sendJSON()`, file_path for uploading a file attachment, and audio_path for adding audio comment. A typical `options` has the following structure:
+`options` is an object that specify on-demand action type, fields_template array - which is used in `sendJSON()`, file_path for uploading a file attachment, and audio_path for adding audio comment for audio file (audio/x-m4a, audio/3gpp). A typical `options` has the following structure:
 
 ```js
 {
@@ -790,7 +790,7 @@ This is the API for uploading file and adding audio comment to Moxtra. `access_t
 |:------|:-----|:---------|
 | `body` | string | `N` |
 | `file_path` | string | `N`, file path |
-| `audio_path` | string | `N`, audio file path |
+| `audio_path` | string | `N`, audio file path for audio file (audio/x-m4a, audio/3gpp) |
 
 #### `.getBinderInfo()`
 
