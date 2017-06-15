@@ -1,6 +1,6 @@
 # Moxtra Bot SDK
 
-[![npm](https://img.shields.io/badge/npm-1.0.5-orange.svg)](https://www.npmjs.com/package/moxtra-bot-sdk)
+[![npm](https://img.shields.io/badge/npm-1.1.0-orange.svg)](https://www.npmjs.com/package/moxtra-bot-sdk)
 [![David](https://img.shields.io/david/strongloop/express.svg)](https://github.com/Moxtra/moxtra-bot-sdk-nodejs.git)
 [![Packagist](https://img.shields.io/packagist/l/doctrine/orm.svg)](https://spdx.org/licenses/MIT)
 
@@ -158,6 +158,15 @@ bot.hears([/(schedule|plan|have)? meet/i, 'meeting together'], (chat) => {
 >   image_url: 'https://www.bbcode.org/images/lubeck_small.jpg'  
 >};  
 >chat.sendJSON(fields);  
+>```
+>
+>- Upload File or Add Audio Comment
+>```js
+>var options = {};
+>options.file_path = `${__dirname}/examples/Upload/start.png`;
+>options.audio_path = `${__dirname}/examples/Upload/test_comment.3gpp`;
+>  
+>chat.sendText(`@${username} upload files`, null, options);
 >```
 
 - Matching keywords for more than once:
@@ -332,17 +341,25 @@ bot.on('account_link', (req, res, data) => {
   const accessToken = _accountLinked[ user_id ];
   
   if (accessToken) {  
-    res.sendStatus(200);
     
     if (!chat) {
       console.log('Unable to get pending request!');  
       
-      // create a new Chat
-      chat = new Chat(bot);
-      chat.access_token = _moxtraAccessToken[ binder_id ];
+      const bot_access_token = _moxtraAccessToken[ binder_id ];
+      
+      if (bot_access_token) {
+          // create a new Chat
+          chat = new Chat(bot);
+          chat.access_token = bot_access_token;
+      }
     }  
       
-    chat.sendText(`@${username} has already obtained access_token from the 3rd party service!`);      
+    if (chat)  {
+      chat.sendText(`@${username} has already obtained access_token from the 3rd party service!`);
+    }
+
+    // close window    
+    res.send('<html><head></head><body onload="javascript:window.close();"></body></html>');
     
   }  else { 
 
@@ -585,6 +602,9 @@ A typical `Chat` instance has the following structure:
   // sendRequest API
   sendRequest: function (body, path, method) {    
   },
+  // uploadRequest API
+  uploadRequest: function (body, file_path, audio_path) {    
+  },
   // getBinderInfo API
   getBinderInfo: function (callback) {    
   },
@@ -608,7 +628,7 @@ A typical `Chat` instance has the following structure:
 
 #### `options`
 
-`options` is an object that specify on-demand action type and fields_template array, which is used in `sendJSON()` . A typical `options` has the following structure:
+`options` is an object that specify on-demand action type, fields_template array - which is used in `sendJSON()`, file_path for uploading a file attachment, and audio_path for adding audio comment. A typical `options` has the following structure:
 
 ```js
 {
@@ -618,7 +638,9 @@ A typical `Chat` instance has the following structure:
       template_type: 'text | richtext | page',
       template: 'TEMPLATE'
     }
-  ]  
+  ],
+  file_path: 'UPLOAD FILE PATH',
+  audio_path: 'AUDIO COMMENT FILE PATH'
 }  
 ```
 ##### Example:
@@ -760,6 +782,15 @@ This is the root API for sending API request to Moxtra. `access_token` in the `c
 | `path` | string | `N`, default is '/messages' |
 | `method` | string | `N`, default is 'POST' |
 
+#### `.uploadRequest(body, file_path, audio_path)`
+
+This is the API for uploading file and adding audio comment to Moxtra. `access_token` in the `chat` has to present to send the request. 
+
+| Param | Type | Required |
+|:------|:-----|:---------|
+| `body` | string | `N` |
+| `file_path` | string | `N`, file path |
+| `audio_path` | string | `N`, audio file path |
 
 #### `.getBinderInfo()`
 
@@ -844,6 +875,7 @@ Check the `examples` directory to see more samples of:
 - A bot using regular expression to capture text message
 - A bot sending RichText message
 - A bot sending Fields message
+- A bot uploading file and adding audio comment
 - A bot handling Account Link with OAuth2 
 
 To run the examples, make sure to complete the bot creation on [MoxtraBot configuration](https://developer.moxtra.com/nextbots) and setup required configurations. For example, to run Echo example using the following command:
