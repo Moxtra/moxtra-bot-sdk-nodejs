@@ -99,17 +99,24 @@ bot.on('account_link', (req, res, data) => {
 	const accessToken = _accountLinked[ user_id ];
 	
 	if (accessToken) {	
-		res.sendStatus(200);
-		
 		if (!chat) {
 			console.log('Unable to get pending request!');	
 			
-			// create a new Chat
-			chat = new Chat(bot);
-			chat.access_token = _moxtraAccessToken[ binder_id ];
+			const bot_access_token = _moxtraAccessToken[ binder_id ];
+			
+			if (bot_access_token) {
+					// create a new Chat
+					chat = new Chat(bot);
+					chat.access_token = bot_access_token;
+			}
 		}	
 			
-		chat.sendText(`@${username} has already obtained access_token from the 3rd party service!`);			
+		if (chat)	{
+			chat.sendText(`@${username} has already obtained access_token from the 3rd party service!`);
+		}
+
+		// close window		
+		res.send('<html><head></head><body onload="javascript:window.close();"></body></html>');
 		
 	}	else { 
 
