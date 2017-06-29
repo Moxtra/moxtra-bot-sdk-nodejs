@@ -87,6 +87,10 @@ const bot = new MoxtraBot({
 });
 ```
 
+- Set correct API endpoint if testing in the Sandbox environment:
+> In the constructor of MoxtraBot.js, change to 
+> **this.api_endpoint = "https://apisandbox.moxtra.com/v1";** from this.api_endpoint = "https://api.moxtra.com/v1";
+
 - Subscribe to messages with the `bot.on()` method for various events: *message*, *bot_installed*, *bot_uninstalled*, *postback*,
 and *account_link*. 
 
