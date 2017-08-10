@@ -41,6 +41,7 @@ bot_challenge='RANDOM_STRING' sending to the configured verify_url. To complete 
   message_id: 'MESSAGE_ID',
   message_type: 'comment_posted',
   binder_id: 'BINDER_ID',
+  bot_id: 'BOT_ID',
   access_token: 'ACCESS_TOKEN',
   event: {
     timestamp: 'TIMESTAMP',
