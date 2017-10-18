@@ -1,6 +1,6 @@
 # Moxtra Bot SDK
 
-[![npm](https://img.shields.io/badge/npm-1.1.0-orange.svg)](https://www.npmjs.com/package/moxtra-bot-sdk)
+[![npm](https://img.shields.io/badge/npm-2.0.0-orange.svg)](https://www.npmjs.com/package/moxtra-bot-sdk)
 [![David](https://img.shields.io/david/strongloop/express.svg)](https://github.com/Moxtra/moxtra-bot-sdk-nodejs.git)
 [![Packagist](https://img.shields.io/packagist/l/doctrine/orm.svg)](https://spdx.org/licenses/MIT)
 
@@ -10,14 +10,27 @@ Moxtra Bot SDK will ease and streamline the Bot development for Moxtra's busines
 const MoxtraBot = require('moxtra-bot-sdk');
 
 const bot = new MoxtraBot({
-  verify_token: 'YOUR_VERIFY_TOKEN',
-  client_secret: 'YOUR_CLIENT_SECRET'
+  client_id: 'YOUR_CLIENT_ID',
+  client_secret: 'YOUR_CLIENT_SECRET',
+  api_endpoint: 'https://apisandbox.moxtra.com/v1'
 });
 
 bot.on('message', (chat) => {
   const username = chat.username;
   const text = chat.comment.text;
-  chat.sendText(`Echo: @${username} ${text}`);
+  
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+    if (error) {
+      // error happens
+    
+    } else {
+      chat.setAccessToken(token.access_token);
+  
+      chat.sendText(`Echo: @${username} ${text}`);
+    }
+  });  
 });
 ```
 
@@ -28,10 +41,19 @@ bot.on('message', (chat) => {
 
 ## Core Concepts
 
-- Bot verification flow: before saving bot configuration during bot creation, a JSONP verification request with message_type=bot_verify&verify_token='YOUR_VERIFY_TOKEN'&  
-bot_challenge='RANDOM_STRING' sending to the configured verify_url. To complete the bot creation, this request expects the same 'RANDOM_STRING' gets returned.  
+- Definitions:
+>* **Bot application** (the 3rd party Bot) has a corresponding **bot app** configuration in Moxtra. 
+>* Each **bot app** is identified by *client_id* in the message event. 
+>* `Bot app` becomes a **bot user** (an org user) once the `bot app` is enabled in an org. This **bot user** is identified by *org_id* in the message event. 
 
-- Binder based bot installation: each received message event has the corresponding *binder_id* and *access_token* for reply, which are encapsulated in the `Chat` object  
+- Bot lifecycle: 
+>* Partner Admin creates a **bot app** configuration via Partner Admin Console
+>* An Org Admin enables this `bot app` via Org Admin Console or API, this `bot app` becomes a **bot user** inside this org. A *bot_enabled* event gets generated.
+>* When the Org Admin disabled this `bot app` via Org Admin Console or API, a *bot_disabled* event gets generated.    
+>* Binder users of the same org as the binder owner can then add this **bot user** into the binder. A *bot_installed* event gets generated.
+>* When the **bot user** leaves the binder, a *bot_uninstalled* event gets generated.
+
+- Each received message event has the corresponding *binder_id*, *client_id*, and *org_id*, which are encapsulated in the `Chat` object. `Bot application` can use *client_id*, *org_id*, and *timestamp* to generate a *signature* signed with *client_secret* to create a `bot user` **access_token**.  
 
 - Each `POST` message event from Moxtra has `x-moxtra-signature` header set as HMA-SHA1 hash of the message content signed with `client_secret` 
 
@@ -41,8 +63,8 @@ bot_challenge='RANDOM_STRING' sending to the configured verify_url. To complete 
   message_id: 'MESSAGE_ID',
   message_type: 'comment_posted',
   binder_id: 'BINDER_ID',
-  bot_id: 'BOT_ID',
-  access_token: 'ACCESS_TOKEN',
+  client_id: 'CLIENT_ID',
+  org_id: 'ORG_ID',
   event: {
     timestamp: 'TIMESTAMP',
     user: {
@@ -77,22 +99,23 @@ git clone https://github.com/Moxtra/moxtra-bot-sdk-nodejs.git
 
 ## Getting Started
 
-- After MoxtraBot is installed via NPM, create a new bot instance using your `verify_token` and `client_secret` obtained from your [MoxtraBot configuration](https://developer.moxtra.com/nextbots):
+- After MoxtraBot is installed via NPM, create a new bot instance using your `client_id` and `client_secret` obtained from your [Manage Bots in Partner Admin Console](https://admin.moxtra.com) in the `bot app` creation.
+
+- Set correct API endpoint for different environment:
+>[Sandbox] api_endpoint:`'https://apisandbox.moxtra.com/v1'`     
+>[Production] api_endpoint:`'https://api.moxtra.com/v1'`
 
 ```js
 const MoxtraBot = require('moxtra-bot-sdk');
 
 const bot = new MoxtraBot({
-  verify_token: 'YOUR_VERIFY_TOKEN',
-  client_secret: 'YOUR_CLIENT_SECRET'
+  client_id: 'YOUR_CLIENT_ID',
+  client_secret: 'YOUR_CLIENT_SECRET',
+  api_endpoint: 'https://apisandbox.moxtra.com/v1'
 });
 ```
 
-- Set correct API endpoint if testing in the Sandbox environment:
-> In the constructor of MoxtraBot.js, change to 
-> **this.api_endpoint = "https://apisandbox.moxtra.com/v1";** from this.api_endpoint = "https://api.moxtra.com/v1";
-
-- Subscribe to messages with the `bot.on()` method for various events: *message*, *bot_installed*, *bot_uninstalled*, *postback*,
+- Subscribe to messages with the `bot.on()` method for various events: *message*, *bot_enabled*, *bot_disabled*, *bot_installed*, *bot_uninstalled*, *postback*,
 and *account_link*. 
 
 ```js
@@ -102,26 +125,48 @@ bot.on('message', (chat) => {
   console.log(`@${username} says ${text}`);
 });
 
-bot.on('bot_installed', (chat) => {
+bot.on('bot_enabled', (chat) => {
 
-  const binder_id = chat.binder_id;
-  const access_token = chat.access_token;
+  const bot_name = chat.bot.name;
+  const org_id = chat.org_id;
   
-  // store binder based Moxtra access_token
-  _moxtraAccessToken[ binder_id ] = access_token;
-  
-  const username = chat.username;
-  chat.sendText(`@${username} Welcome to MoxtraBot!!`);
+  console.log(`Bot ${bot_name} enabled on ${org_id}`);  
 });
 
-bot.on('bot_uninstalled', (data) => {
+bot.on('bot_disabled', (chat) => {
 
-  const binder_id = data.binder_id;
+  const bot_name = chat.bot.name;
+  const org_id = chat.org_id;
   
-  // remove Moxtra access_token for this binder
-  delete _moxtraAccessToken[ binder_id ];
+  console.log(`Bot ${bot_name} disabled on ${org_id}`);
+});
+
+bot.on('bot_installed', (chat) => {
+
+  const username = chat.username;
+  const bot_name = chat.bot.name;
   
-  console.log(`Bot uninstalled on ${binder_id}`);
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+    if (error) {
+      // error happens
+    
+    } else {
+      chat.setAccessToken(token.access_token);
+  
+      chat.sendText(`@${username} Welcome to ${bot_name}!!`);
+    }
+  });
+  
+});
+
+bot.on('bot_uninstalled', (chat) => {
+
+  const bot_name = chat.bot.name;
+  const binder_id = chat.binder_id;
+  
+  console.log(`Bot ${bot_name} uninstalled on ${binder_id}`);
 });
 ```
 Other message events are *page_created*, *file_uploaded*, *page_annotated*, *todo_created*, *todo_completed* and *meet_recording_ready*.
@@ -141,9 +186,29 @@ bot.hears([/(schedule|plan|have)? meet/i, 'meeting together'], (chat) => {
 bot.hears([/(schedule|plan|have)? meet/i, 'meeting together'], (chat) => {
   const username = chat.username;
 
-  chat.sendText(`@${username} do you need to schedule a meet?`);
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+    if (error) {
+      // error happens
+    
+    } else {
+      chat.setAccessToken(token.access_token);
+  
+      chat.sendText(`@${username} do you need to schedule a meet?`);
+    }
+  });
 });
 ```
+>- Obtain access_token
+>```js
+>bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+>});
+>```
+>- Set access_token before sending message
+>```js
+>chat.setAccessToken(token.access_token);
+>```
 >- Send Text  
 >```js
 >chat.sendText(`@${username} do you need to schedule a meet?`);
@@ -176,7 +241,7 @@ bot.hears([/(schedule|plan|have)? meet/i, 'meeting together'], (chat) => {
 
 - Matching keywords for more than once:
 
-If there are more than one keyword matches in `bot.hears()`, the same handler as well as *bot.on('message')* event handler would get invoked. By checking `chat.condition` to determine whether to handle in this situation. 
+If there are more than one keyword matches in `bot.hears()`, the same handler as well as *bot.on('message')* event handler would get invoked. By checking `chat.condition` to determine whether to handle in this situation. You can turn off the generic handler in case there are keywords matches via **bot.setGenericHandling(false);**
 
 `chat.condition.match` - the word that matches the regular expression or the whole keyword  
 `chat.condition.primatches` - the number of times that match happened before 
@@ -195,7 +260,18 @@ bot.on('message', (chat) => {
     return;
   }
   
-  chat.sendText(`Echo: @${username} ${text}`);
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+    if (error) {
+      // error happens
+    
+    } else {
+      chat.setAccessToken(token.access_token);
+  
+      chat.sendText(`Echo: @${username} ${text}`);
+    }
+  });
 };  
 
 bot.hears([/(schedule|plan|have)? meet/i, 'meeting together'], (chat) => {
@@ -213,8 +289,19 @@ bot.hears([/(schedule|plan|have)? meet/i, 'meeting together'], (chat) => {
       console.log(`message for: @${username} ${text} on ${condition.match}`);    
     }
   }
+
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+    if (error) {
+      // error happens
+    
+    } else {
+      chat.setAccessToken(token.access_token);
   
-  chat.sendText(`@${username} do you need to schedule a meet?`);
+      chat.sendText(`@${username} do you need to schedule a meet?`);
+    }
+  });
 });
 ```
 
@@ -262,7 +349,18 @@ bot.on('postback:Not Sure?', (chat) => {
   const text = chat.postback.text;
   const payload = chat.postback.payload;
 
-  chat.sendText(`@${username} specific postback ${text} ${payload}`);
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+    if (error) {
+      // error happens
+    
+    } else {
+      chat.setAccessToken(token.access_token);
+  
+      chat.sendText(`@${username} specific postback ${text} ${payload}`);
+    }
+  });
 });
 
 bot.on('postback', (chat) => {
@@ -271,7 +369,18 @@ bot.on('postback', (chat) => {
   const text = chat.postback.text;
   const payload = chat.postback.payload;
 
-  chat.sendText(`@${username} generic postback ${text} ${payload}`);
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+    if (error) {
+      // error happens
+    
+    } else {
+      chat.setAccessToken(token.access_token);
+  
+      chat.sendText(`@${username} generic postback ${text} ${payload}`);
+    }
+  });
 });
 ```
 
@@ -288,14 +397,15 @@ const app = express();
 const MoxtraBot = require('moxtra-bot-sdk');
 
 const bot = new MoxtraBot({
-  verify_token: 'YOUR_VERIFY_TOKEN',
-  client_secret: 'YOUR_CLIENT_SECRET'
+  client_id: 'YOUR_CLIENT_ID',
+  client_secret: 'YOUR_CLIENT_SECRET',
+  api_endpoint: 'https://apisandbox.moxtra.com/v1'
 });
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json( { verify: bot.verifyRequestSignature.bind(bot) }));
 
-// bot verification
+// handle account_link
 app.get('/webhooks', (req, res, next) => {
   bot.handleGetRequest(req, res, next);
 });
@@ -309,10 +419,10 @@ app.post('/webhooks', (req, res, next) => {
 ## Account Linking
 
 - Link Moxtra account with the 3rd party service through Account Linking flow:
->1. User sends a request to Bot, which requires access to a 3rd party service that needs user's authorization. Bot does not have prior user account linking info with the 3rd party service.
+>1. User sends a request to Bot (**Bot application**), which requires access to a 3rd party service that needs user's authorization. Bot does not have prior user account linking info with the 3rd party service.
 >2. Bot sends `ACCOUNT_LINK` button back to Moxtra chat.
 >3. User clicks the button and a [JSON web token](https://en.wikipedia.org/wiki/JSON_Web_Token) sends back to Bot via the `GET` method.
->4. Bot verifies the token using `client_secret` as the key and decodes the token; Bot obtains *user_id*, *username*, and *binder_id* via handling the *bot.on('account_link')* event.
+>4. Bot verifies the token using `client_secret` as the key and decodes the token; Bot obtains *user_id*, *username*, *binder_id*, *client_id*, and *org_id* via handling the *bot.on('account_link')* event.
 >5. Bot needs to check whether the *user_id* having the corresponding *access_token* from the 3rd party service in case `ACCOUNT_LINK` button might be tapped more than once or by different users in a group chat. If no, next OAuth2 authorization flow would then follows.
 >6. After obtaining the *access_token* from the 3rd party service, Bot needs to complete the original request.
 
@@ -332,12 +442,27 @@ bot.on('account_link', (req, res, data) => {
   const user_id = data.user_id;
   const username = data.username;
   const binder_id = data.binder_id;
+  const client_id = data.client_id;
+  const org_id = data.org_id;
   
   // obtain from pendingResponse
-  const chat = _pendingResponse[ binder_id + user_id ];
+  var chat = _pendingResponse[ binder_id + user_id ];
   
-  if (chat) {    
-    chat.sendText(`@${username} performs an account_link for user_id: ${user_id} on binder_id: ${binder_id}`);
+  if (chat) {
+
+    // obtain access_token    
+    bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+      if (error) {
+        // error happens
+    
+      } else {
+        chat.setAccessToken(token.access_token);
+  
+        chat.sendText(`@${username} performs an account_link for user_id: ${user_id} on binder_id: ${binder_id}`);
+      }
+    });    
+
   } else {
     chat = _pendingOAuth[ user_id ];  
   }
@@ -348,19 +473,38 @@ bot.on('account_link', (req, res, data) => {
   if (accessToken) {  
     
     if (!chat) {
-      console.log('Unable to get pending request!');  
-      
-      const bot_access_token = _moxtraAccessToken[ binder_id ];
-      
-      if (bot_access_token) {
+      console.log('Unable to get pending request!');
+    
+      // obtain access_token    
+      bot.getAccessToken(client_id, org_id, function(error, token) {
+
+        if (error) {
+          // error happens
+    
+        } else {        
           // create a new Chat
           chat = new Chat(bot);
-          chat.access_token = bot_access_token;
-      }
-    }  
+        
+          chat.setAccessToken(token.access_token);
+  
+          chat.sendText(`@${username} has already obtained access_token from the 3rd party service!`);
+        }
+      });        
       
-    if (chat)  {
-      chat.sendText(`@${username} has already obtained access_token from the 3rd party service!`);
+    } else {
+      // obtain access_token    
+      bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+        if (error) {
+          // error happens
+    
+        } else {        
+          chat.setAccessToken(token.access_token);
+  
+          chat.sendText(`@${username} has already obtained access_token from the 3rd party service!`);
+        }
+      });            
+
     }
 
     // close window    
@@ -374,7 +518,8 @@ bot.on('account_link', (req, res, data) => {
     _pendingOAuth[ user_id ] = chat;
 
     // redirect if needed  
-    res.cookie('user_id', user_id);    
+    res.cookie('user_id', user_id);
+    
     res.redirect('/auth');    
   }  
   
@@ -386,8 +531,9 @@ bot.on('account_link', (req, res, data) => {
 const OAuth2 = require('./lib/oauth2');
 
 const config = {
-  verify_token: "YOUR_VERIFY_TOKEN",
+  client_id: "YOUR_CLIENT_ID",
   client_secret: "YOUR_CLIENT_SECRET",
+  api_endpoint: "https://apisandbox.moxtra.com/v1",
   oauth2_client_id: "SERVICE_OAUTH2_CLIENT_ID",
   oauth2_client_secret: "SERVICE_OAUTH2_CLIENT_SECRET",
   oauth2_endpoint: "SERVICE_OAUTH2_ENDPOINT",
@@ -434,7 +580,18 @@ bot.on('access_token', (accessToken, req) => {
     const username = chat.username;
     const text = chat.comment.text;
     
-    chat.sendText(`@${username} after account linked, bot will complete your request: ${text}`);
+    // obtain access_token    
+    bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+      if (error) {
+        // error happens
+    
+      } else {
+        chat.setAccessToken(token.access_token);
+  
+        chat.sendText(`@${username} after account linked, bot will complete your request: ${text}`);
+      }
+    });
   }
 
   console.log(`Obtained access_token: ${accessToken.token.access_token} for user ${user_id}`);
@@ -450,8 +607,9 @@ bot.on('access_token', (accessToken, req) => {
 
 | `configuration` key | Type | Required |
 |:--------------|:-----|:---------|
-| `verify_token` | string | `Y` |
+| `client_id` | string | `Y` |
 | `client_secret` | string | `Y` |
+| `api_endpoint` | string | `N` |
 
 Creates a new `MoxtraBot` instance. 
 
@@ -466,36 +624,38 @@ Subscribe to the message event emitted by the bot, and a callback gets invoked w
 
 | Event | Callback Parameters | Description |
 |:------|:-----|:-----|
-| *bot_installed* | Chat object - chat.bot | The user installed the bot in one binder |
-| *bot_uninstalled* | raw message event data | The user removed the bot from the binder |
-| *message* | Chat object - chat.comment | The bot received a text message from the user by commenting in a binder |
-| *postback* | Chat object - chat.postback | The bot received a postback call from the user after  clicking a `POSTBACK` button |
-| *account_link* | Request, Response, JSON Web Token content | The bot received an account_link call from the user after clicking an `ACCOUNT_LINK` button |
-| *page_created* | Chat object - chat.page | The bot received a message that a page was created in the binder |
-| *file_uploaded* | Chat object - chat.file | The bot received a message that a file was uploaded in the binder |
-| *page_annotated* | Chat object - chat.annotate | The bot received a message that an annotation was created on a page in the binder |
-| *todo_created* | Chat object - chat.todo | The bot received a message that a todo item was created in the binder |
-| *todo_completed* | Chat object - chat.todo | The bot received a message that a todo item was completed in the binder |
-| *meet_recording_ready* | Chat object - chat.meet | The bot received a message that a meet recording was ready in the binder |
+| *bot_enabled* | Chat object - chat.bot | Org Admin enabled the `bot app` in one org |
+| *bot_disabled* | Chat object - chat.bot | Org Admin disabled the `bot app` from the org |
+| *bot_installed* | Chat object - chat.bot | A binder user added the `bot user` in the binder |
+| *bot_uninstalled* | Chat object - chat.bot | A binder user removed the `bot user` from the binder |
+| *message* | Chat object - chat.comment | The `Bot application` received a text message from the user by commenting in a binder |
+| *postback* | Chat object - chat.postback | The `Bot application` received a postback call from the user after  clicking a `POSTBACK` button |
+| *account_link* | Request, Response, JSON Web Token content | The `Bot application` received an account_link call from the user after clicking an `ACCOUNT_LINK` button |
+| *page_created* | Chat object - chat.page | The `Bot application` received a message that a page was created in the binder |
+| *file_uploaded* | Chat object - chat.file | The `Bot application` received a message that a file was uploaded in the binder |
+| *page_annotated* | Chat object - chat.annotate | The `Bot application` received a message that an annotation was created on a page in the binder |
+| *todo_created* | Chat object - chat.todo | The `Bot application` received a message that a todo item was created in the binder |
+| *todo_completed* | Chat object - chat.todo | The `Bot application` received a message that a todo item was completed in the binder |
+| *meet_recording_ready* | Chat object - chat.meet | The `Bot application` received a message that a meet recording was ready in the binder |
 
 ##### Example:
 
 ```js
 bot.on('message', (chat) => {
   const text = chat.comment.text; 
-  chat.sendText(`message ${text} was received!`);
+  console.log(`message ${text} was received!`);
 });
 
 bot.on('postback', (chat) => {
   const text = chat.postback.text;
   const payload = chat.postback.payload;
-  chat.sendText(`Postback ${text} with payload: ${payload} was received!`);
+  console.log(`Postback ${text} with payload: ${payload} was received!`);
 });
 
 bot.on('file_uploaded', (chat) => {
   const name = chat.file.name;
   const file_id = chat.file.id;
-  chat.sendText(`File:${file_id} ${name} was uploaded!`);
+  console.log(`File:${file_id} ${name} was uploaded!`);
 });
 ```
 
@@ -527,8 +687,19 @@ bot.hears([/(schedule|plan|have)? meet/i, 'meeting together'], (chat) => {
       console.log(`message for: @${username} ${text} on ${condition.match}`);    
     }
   }
+
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+    if (error) {
+      // error happens
+   
+    } else {
+      chat.setAccessToken(token.access_token);
   
-  chat.sendText(`@${username} do you need to schedule a meet?`);
+      chat.sendText(`@${username} do you need to schedule a meet?`);
+    }
+  });       
 });
 ```
 ---
@@ -537,7 +708,7 @@ bot.hears([/(schedule|plan|have)? meet/i, 'meeting together'], (chat) => {
 
 #### `new Chat(bot)`
 
-Chat instance is created in the callback for each type of message event except *bot_uninstalled* and *account_link*. Therefore, chat.binder_id, chat.user_id, chat.username, and chat.access_token as well as the corresponding event object are pre-populated.  
+Chat instance is created in the callback for each type of message event except *account_link*. Therefore, chat.binder_id, chat.user_id, chat.username, chat.client_id, and chat.org_id as well as the corresponding event object are pre-populated.  
 
 A typical `Chat` instance has the following structure:
 
@@ -546,7 +717,9 @@ A typical `Chat` instance has the following structure:
   moxtrabot: {MoxtraBot instance},
   data: {raw message event data},
   binder_id: 'BINDER_ID',
-  access_token: 'ACCESS_TOKEN',
+  client_id: 'CLIENT_ID',
+  org_id: 'ORG_ID',
+  access_token: {access_token for sending message},
   condition: {
     match: 'MATCHED_KEYWORD',
     primatches: NUMBER_OF_MATCHES_BEFORE
@@ -612,10 +785,7 @@ A typical `Chat` instance has the following structure:
   },
   // getBinderInfo API
   getBinderInfo: function (callback) {    
-  },
-  // getUserInfo API
-  getUserInfo: function (callback) {    
-  }  
+  }
 }
 ```
 
@@ -799,15 +969,32 @@ This is the API for uploading file and adding audio comment to Moxtra. `access_t
 
 #### `.getBinderInfo()`
 
-This API is to get the installed binder information, which can use the `access_token` obtained on the *bot_installed* event.  
+This API is to get a particular binder information. `binder_id` has to be set prior to making the api call.  
 
 ##### Example:
 
 ```js
 var chat = new Chat(bot);
-chat.access_token = _moxtraAccessToken[ 'BINDER_ID' ];
 
-const binder_info = chat.getBinderInfo();
+// obtain access_token    
+bot.getAccessToken('CLIENT_ID', 'ORG_ID', function(error, token) {
+
+  if (error) {
+    // error happens
+
+  } else {
+    chat.setAccessToken(token.access_token);
+
+    chat.binder_id='BINDER_ID'; 
+    chat.getBinderInfo(function(error, ret) {
+      if (!error) {
+        console.log('binder : ' + ret);
+      }      
+    });
+  }
+});
+
+
 ```
 ##### Result:
 
@@ -837,35 +1024,6 @@ const binder_info = chat.getBinderInfo();
     "tags": null,
     "unread_feeds": 0,
     "pages": []
-  }
-}
-```
-
-#### `.getUserInfo()`
-
-This API is to get the specific user information in the binder, which can use the `access_token` obtained on the *bot_installed* event.  
-
-##### Example:
-
-```js
-var chat = new Chat(bot);
-chat.access_token = _moxtraAccessToken[ 'BINDER_ID' ];
-chat.user_id = 'USER_ID';
-
-const user_info = chat.getUserInfo();
-```
-##### Result:
-
-```js
-{
-  "code": "RESPONSE_SUCCESS",
-  "data": {
-    "id": "Utkj3YC5BxRHCCbq9widP67",
-    "email": "john@test.com",
-    "name": "John Smith",
-    "picture_uri": "https://www.moxtra.com/board/BiHGjPE2ZbsHyhVujuU4TUL/user/2/1763",
-    "phone_number": "",
-    "unique_id": ""
   }
 }
 ```

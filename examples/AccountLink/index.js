@@ -16,148 +16,211 @@ var _pendingOAuth = {};
 // key: user_id   value: accessToken from the 3rd party service
 var _accountLinked = {};
 
-// key: binder_id   value: access_token from Moxtra
-var _moxtraAccessToken = {};
-
 // create moxtra bot
 const bot = new MoxtraBot(config);
 
 bot.on('bot_installed', (chat) => {
 
-  const binder_id = chat.binder_id;
-  const access_token = chat.access_token;
+  const username = chat.username;  
   
-  // store binder based Moxtra access_token
-  _moxtraAccessToken[ binder_id ] = access_token;
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+	if (error) {
+	  // error happens
+
+	} else {
+	  chat.setAccessToken(token.access_token);
+
+	  chat.sendText(`@${username} Welcome to MoxtraBot!!`);
+	}
+  });
   
-  const username = chat.username;
-  chat.sendText(`@${username} Welcome to MoxtraBot!!`);
 });
 
-bot.on('bot_uninstalled', (data) => {
+bot.on('bot_uninstalled', (chat) => {
 
-  const binder_id = data.binder_id;
+  const binder_id = chat.binder_id;
   
-  // remove Moxtra access_token for this binder
-  delete _moxtraAccessToken[ binder_id ];
-  
-	console.log(`Bot uninstalled on ${binder_id}`);
+  console.log(`Bot uninstalled on ${binder_id}`);
 });
 
 bot.hears([/(schedule|plan|have)? meet/i, 'meeting together'], (chat) => {
 
-	const username = chat.username;
+  const username = chat.username;
   const text = chat.comment.text;
 
-	const condition = chat.condition;
+  const condition = chat.condition;
 
   if (condition) {  
-  	if (condition.primatches > 0) {
-  	  // handle message again
-  	  console.log(`message has been handled: @${username} ${text} on ${condition.match} for ${condition.primatches} times`);
-  		return;
+    if (condition.primatches > 0) {
+    	// handle message again
+    	console.log(`message has been handled: @${username} ${text} on ${condition.match} for ${condition.primatches} times`);
+    	return;
     } else {
     	console.log(`message for: @${username} ${text} on ${condition.match}`);    
     }
   }
 	
-	var buttons = [{
-		type: 'account_link',
-		text: 'Sign In'
-	}];
-	
-	// save chat in pendingResponse for account_link
-	_pendingResponse[ chat.binder_id + chat.user_id ] = chat;
-	
-	chat.sendText(`@${username} do you need to schedule a meet?`, buttons);
+  var buttons = [{
+    type: 'account_link',
+    text: 'Sign In'
+  }, 'Not Sure?'];
+
+  // save chat in pendingResponse for account_link
+  _pendingResponse[ chat.binder_id + chat.user_id ] = chat;
+
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+	if (error) {
+	  // error happens
+
+	} else {
+	  chat.setAccessToken(token.access_token);
+
+	  chat.sendText(`@${username} do you need to schedule a meet?`, buttons);
+	}
+  });
+		
 });
 
-// obtain account_link info in the following format
+// obtain account_link info with the following format in JWT
 // { 
-//   timestamp: xxxx,
 //   user_id: xxxx,
 //   username: xxxx,
 //   binder_id: xxxx
+//   client_id: xxxx
+//   org_id: xxxx
 // }
 
 bot.on('account_link', (req, res, data) => {
 	
-	const user_id = data.user_id;
-	const username = data.username;
-	const binder_id = data.binder_id;
+  const user_id = data.user_id;
+  const username = data.username;
+  const binder_id = data.binder_id;
+  const client_id = data.client_id;
+  const org_id = data.org_id;
 	
-	// obtain from pendingResponse
-	const chat = _pendingResponse[ binder_id + user_id ];
+  // obtain from pendingResponse
+  var chat = _pendingResponse[ binder_id + user_id ];
 	
-	if (chat) {	  
-		chat.sendText(`@${username} performs an account_link for user_id: ${user_id} on binder_id: ${binder_id}`);
-	} else {
-		chat = _pendingOAuth[ user_id ];	
-	}
-	
-	// saved linked accessToken from the 3rd party service
-	const accessToken = _accountLinked[ user_id ];
-	
-	if (accessToken) {	
-		if (!chat) {
-			console.log('Unable to get pending request!');	
-			
-			const bot_access_token = _moxtraAccessToken[ binder_id ];
-			
-			if (bot_access_token) {
-					// create a new Chat
-					chat = new Chat(bot);
-					chat.access_token = bot_access_token;
-			}
-		}	
-			
-		if (chat)	{
-			chat.sendText(`@${username} has already obtained access_token from the 3rd party service!`);
-		}
+  if (chat) {
 
-		// close window		
-		res.send('<html><head></head><body onload="javascript:window.close();"></body></html>');
+    // obtain access_token    
+    bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+	  if (error) {
+	    // error happens
+
+	  } else {
+	    chat.setAccessToken(token.access_token);
+
+	    chat.sendText(`@${username} performs an account_link for user_id: ${user_id} on binder_id: ${binder_id}`);
+	  }
+    });	  
+
+  } else {
+    chat = _pendingOAuth[ user_id ];	
+  }
+	
+  // saved linked accessToken from the 3rd party service
+  const accessToken = _accountLinked[ user_id ];
+	
+  if (accessToken) {	
 		
-	}	else { 
+    if (!chat) {
+	  console.log('Unable to get pending request!');
 
-	  delete _pendingResponse[ binder_id + user_id ];	  
+	  // obtain access_token    
+	  bot.getAccessToken(client_id, org_id, function(error, token) {
 
-		// save chat to the pendingOAuth 
-		_pendingOAuth[ user_id ] = chat;
+	      if (error) {
+		  // error happens
 
-		// redirect if needed	
-		res.cookie('user_id', user_id);
+	      } else {
+
+		  // create a new Chat
+		  chat = new Chat(bot);
+
+		  chat.setAccessToken(token.access_token);
+
+		  chat.sendText(`@${username} has already obtained access_token from the 3rd party service!`);
+	      }
+	  });	  		
+
+    } else {
+
+	  // obtain access_token    
+	  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+	      if (error) {
+		  // error happens
+
+	      } else {
+
+		  chat.setAccessToken(token.access_token);
+
+		  chat.sendText(`@${username} has already obtained access_token from the 3rd party service!`);
+	      }
+	  });	  		
+    }
+
+    // close window		
+    res.send('<html><head></head><body onload="javascript:window.close();"></body></html>');
 		
-		res.redirect('/auth');		
-	}	
+  } else { 
+
+    delete _pendingResponse[ binder_id + user_id ];	  
+
+    // save chat to the pendingOAuth 
+    _pendingOAuth[ user_id ] = chat;
+
+    // redirect if needed	
+    res.cookie('user_id', user_id);
+		
+    res.redirect('/auth');		
+  }	
 	
 });
 
 // after doing OAuth2 against the 3rd party service to obtain a user level access_token
 bot.on('access_token', (accessToken, req) => {
 
-	const user_id = req.cookies.user_id;
-	var chat;
-	
-	if (user_id) {
-		chat = _pendingOAuth[ user_id ];		
-		
-		// save linked accessToken
-		_accountLinked[ user_id ] = accessToken;
-	}
-	
-	if (chat) {
-		
-	  delete _pendingOAuth[ user_id ];
+  const user_id = req.cookies.user_id;
+  var chat;
 
-		// complete the pending request
-		const username = chat.username;
-		const text = chat.comment.text;
-		
-		chat.sendText(`@${username} after account linked, bot will complete your request: ${text}`);
-	}
+  if (user_id) {
+    chat = _pendingOAuth[ user_id ];		
 
-	console.log(`Obtained access_token: ${accessToken.token.access_token} for user ${user_id}`);
+    // save linked accessToken
+    _accountLinked[ user_id ] = accessToken;
+  }
+
+  if (chat) {
+
+    delete _pendingOAuth[ user_id ];
+
+    // complete the pending request
+    const username = chat.username;
+    const text = chat.comment.text;
+		
+    // obtain access_token    
+    bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+	  if (error) {
+	    // error happens
+
+	  } else {
+	    chat.setAccessToken(token.access_token);
+
+	    chat.sendText(`@${username} after account linked, bot will complete your request: ${text}`);
+	  }
+    });	 		
+		
+  }
+
+  console.log(`Obtained access_token: ${accessToken.token.access_token} for user ${user_id}`);
 
 });
 
@@ -171,22 +234,22 @@ app.use(cookieParser());
 
 // OAuth2 request flow
 app.get('/auth', (req, res, next) => { 
-	oauth2.auth(req, res, next);
+  oauth2.auth(req, res, next);
 });
 
 // OAuth2 callback to obtain access_token
 app.get('/callback', (req, res, next) => {
-	oauth2.callback(req, res, next);
+  oauth2.callback(req, res, next);
 });
 
-// bot verification
+// handle account_link
 app.get('/webhooks', (req, res, next) => {
-	bot.handleGetRequest(req, res, next);
+  bot.handleGetRequest(req, res, next);
 });
 
 // handle message events
 app.post('/webhooks', (req, res, next) => {
-	bot.handlePostRequest(req, res, next);
+  bot.handlePostRequest(req, res, next);
 });	
 
 app.use(function(err, req, res, next) { 

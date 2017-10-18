@@ -4,43 +4,45 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const MoxtraBot = require('../../');
 
-// key: binder_id   value: access_token from Moxtra
-var _moxtraAccessToken = {};
-
 // create moxtra bot
 const bot = new MoxtraBot({
-  verify_token: 'YOUR_VERIFY_TOKEN',
-  client_secret: 'YOUR_CLIENT_SECRET'
+  client_id: 'YOUR_CLIENT_ID',
+  client_secret: 'YOUR_CLIENT_SECRET',
+  api_endpoint: 'https://apisandbox.moxtra.com/v1'
 });
 
 bot.on('bot_installed', (chat) => {
 
-  const binder_id = chat.binder_id;
-  const access_token = chat.access_token;
+  const username = chat.username;  
   
-  // store binder based Moxtra access_token
-  _moxtraAccessToken[ binder_id ] = access_token;
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+	if (error) {
+	  // error happens
+
+	} else {
+	  chat.setAccessToken(token.access_token);
+
+	  chat.sendText(`@${username} Welcome to MoxtraBot!!`);
+	}
+  });
   
-  const username = chat.username;
-  chat.sendText(`@${username} Welcome to MoxtraBot!!`);
 });
 
-bot.on('bot_uninstalled', (data) => {
+bot.on('bot_uninstalled', (chat) => {
 
-  const binder_id = data.binder_id;
+  const binder_id = chat.binder_id;
   
-  // remove Moxtra access_token for this binder
-  delete _moxtraAccessToken[ binder_id ];
-  
-	console.log(`Bot uninstalled on ${binder_id}`);
+  console.log(`Bot uninstalled on ${binder_id}`);
 });
 
 bot.on('message', (chat) => {
 
-	const username = chat.username;
+  const username = chat.username;
   const text = chat.comment.text;
 
-	const condition = chat.condition;
+  const condition = chat.condition;
 
   if (condition && condition.primatches > 0) {
     // don't handle message again
@@ -48,15 +50,27 @@ bot.on('message', (chat) => {
   	return;
   }
 
-  chat.sendText(`Echo: @${username} ${text}`);
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+	if (error) {
+	  // error happens
+
+	} else {
+	  chat.setAccessToken(token.access_token);
+
+	  chat.sendText(`Echo: @${username} ${text}`);
+	}
+  });
+  
 });
 
 bot.hears([/(schedule|plan|have)? meet/i, 'meeting together'], (chat) => {
 
-	const username = chat.username;
+  const username = chat.username;
   const text = chat.comment.text;
 
-	const condition = chat.condition;
+  const condition = chat.condition;
 
   if (condition) {  
   	if (condition.primatches > 0) {
@@ -68,41 +82,89 @@ bot.hears([/(schedule|plan|have)? meet/i, 'meeting together'], (chat) => {
     }
   }
 	
-	var buttons = [{
-		type: 'postback',
-		text: 'Sure!'
-	}, 'Not Sure?'];
+  var buttons = [{
+	type: 'postback',
+	text: 'Sure!'
+  }, 'Not Sure?'];
 	
-	chat.sendText(`@${username} do you need to schedule a meet?`, buttons);
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+	if (error) {
+	  // error happens
+
+	} else {
+	  chat.setAccessToken(token.access_token);
+
+	  chat.sendText(`@${username} do you need to schedule a meet?`, buttons);
+	}
+  });
+		
 });
 
 // specific handling postback text
 bot.on('postback:Sure!', (chat) => {
 	
-	const username = chat.username;
+  const username = chat.username;
   const text = chat.postback.text;
   
-	chat.sendText(`@${username} postback ${text}`);
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+	if (error) {
+	  // error happens
+
+	} else {
+	  chat.setAccessToken(token.access_token);
+
+	  chat.sendText(`@${username} postback ${text}`);
+	}
+  });			
+	
 });
 
 // specific handling postback text
 bot.on('postback:Not Sure?', (chat) => {
 	
-	const username = chat.username;
+  const username = chat.username;
   const text = chat.postback.text;
   const payload = chat.postback.payload;
-  
-	chat.sendText(`@${username} postback ${text} ${payload}`);
+
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+	if (error) {
+	  // error happens
+
+	} else {
+	  chat.setAccessToken(token.access_token);
+
+	  chat.sendText(`@${username} postback ${text} ${payload}`);
+	}
+  });	
+	
 });
 
 // generic handling
 bot.on('postback', (chat) => {
 	
-	const username = chat.username;
+  const username = chat.username;
   const text = chat.postback.text;
   const payload = chat.postback.payload;
 
-	chat.sendText(`@${username} postback ${text} ${payload}`);
+  // obtain access_token    
+  bot.getAccessToken(chat.client_id, chat.org_id, function(error, token) {
+
+	if (error) {
+	  // error happens
+
+	} else {
+	  chat.setAccessToken(token.access_token);
+
+	  chat.sendText(`@${username} generic postback ${text} ${payload}`);
+	}
+  });	  
+
 });
 
 // App
@@ -111,14 +173,9 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json( { verify: bot.verifyRequestSignature.bind(bot) }));
 
-// bot verification
-app.get('/webhooks', (req, res, next) => {
-	bot.handleGetRequest(req, res, next);
-});
-
 // handle message events
 app.post('/webhooks', (req, res, next) => {
-	bot.handlePostRequest(req, res, next);
+  bot.handlePostRequest(req, res, next);
 });	
 
 app.use(function(err, req, res, next) { 

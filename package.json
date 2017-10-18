@@ -1,6 +1,6 @@
 {
   "name": "moxtra-bot-sdk",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Moxtra Bot SDK",
   "main": "index.js",
   "scripts": {
@@ -25,9 +25,10 @@
     "eventemitter3": "^1.2.0",
     "express": "^4.14.0",
     "form-data": "^2.2.0",
-    "jsonwebtoken": "^7.3.0",
+    "jsonwebtoken": "^8.0.1",
     "node-fetch": "^1.5.3",
-    "simple-oauth2": "^1.1.0"
+    "simple-oauth2": "^1.1.0",
+    "urlsafe-base64": "^1.0.0"
   },
   "devDependencies": {
     "chai": "^3.5.0",
