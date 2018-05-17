@@ -1,6 +1,6 @@
 # Moxtra Bot SDK
 
-[![npm](https://img.shields.io/badge/npm-2.0.0-orange.svg)](https://www.npmjs.com/package/moxtra-bot-sdk)
+[![npm](https://img.shields.io/badge/npm-2.1.0-orange.svg)](https://www.npmjs.com/package/moxtra-bot-sdk)
 [![David](https://img.shields.io/david/strongloop/express.svg)](https://github.com/Moxtra/moxtra-bot-sdk-nodejs.git)
 [![Packagist](https://img.shields.io/packagist/l/doctrine/orm.svg)](https://spdx.org/licenses/MIT)
 
@@ -69,16 +69,29 @@ bot.on('message', (chat) => {
     timestamp: 'TIMESTAMP',
     user: {
       id: 'USER_ID',
-      name: 'USERNAME'
+      name: 'USERNAME',
+      image_url: 'AVATAR',
+      unique_id: 'UNIQUE_ID',
+      email: 'EMAIL',
+      is_bot: 'IS_BOT'
     },
     comment: {
       id: 'COMMENT_ID',
       text: 'TEXT MESSAGE',
-      audio: 'AUDIO MESSAGE'    
+      richtext: 'RICHTEXT MESSAGE',
+      audio: 'AUDIO MESSAGE',
+      is_position_comment: 'IS_POSITION_COMMENT'
     },
     target: {
       id: 'BINDER_ID',
       object_type: 'binder'
+    },
+    reply_to: {
+      id: 'COMMENT_ID',
+      text: 'TEXT MESSAGE',
+      richtext: 'RICHTEXT MESSAGE',
+      audio: 'AUDIO MESSAGE',
+      is_position_comment: 'IS_POSITION_COMMENT'
     }
   }
 }
