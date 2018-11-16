@@ -1,6 +1,6 @@
 # Moxtra Bot SDK
 
-[![npm](https://img.shields.io/badge/npm-2.1.0-orange.svg)](https://www.npmjs.com/package/moxtra-bot-sdk)
+[![npm](https://img.shields.io/badge/npm-2.2.0-orange.svg)](https://www.npmjs.com/package/moxtra-bot-sdk)
 [![David](https://img.shields.io/david/strongloop/express.svg)](https://github.com/Moxtra/moxtra-bot-sdk-nodejs.git)
 [![Packagist](https://img.shields.io/packagist/l/doctrine/orm.svg)](https://spdx.org/licenses/MIT)
 
@@ -772,7 +772,7 @@ A typical `Chat` instance has the following structure:
   },
   // for meet_recording_ready event
   meet: {
-    id: 'MEET_ID',
+    id: 'MEET_ID or SESSION_KEY',
     topic: 'MEET_TOPIC',
     start_time: 'MEET_START_TIME',
     end_time: 'MEET_END_TIME',
@@ -816,7 +816,9 @@ A typical `Chat` instance has the following structure:
 
 #### `options`
 
-`options` is an object that specify on-demand action type, fields_template array - which is used in `sendJSON()`, file_path for uploading a file attachment, and audio_path for adding audio comment for audio file (audio/x-m4a, audio/3gpp). A typical `options` has the following structure:
+`options` is an object that specify on-demand action type, fields_template array - which is used in `sendJSON()`, file_path for uploading a file attachment, and audio_path for adding audio comment for audio file (audio/x-m4a, audio/mp3, audio/aac).   
+Comment can reply to a specific object (binder comment, page position comment, file, signature, transaction, or meet). By setting `reply_to` struture, comment is used for replying message.   
+A typical `options` has the following structure:
 
 ```js
 {
@@ -828,7 +830,28 @@ A typical `Chat` instance has the following structure:
     }
   ],
   file_path: 'UPLOAD FILE PATH',
-  audio_path: 'AUDIO COMMENT FILE PATH'
+  audio_path: 'AUDIO COMMENT FILE PATH',  
+  reply_to: {
+    binder: {
+      comment_id: 'COMMENT_ID'
+    },
+    page: {
+      id: 'PAGE_ID',
+      position_comment_id: 'POSITION_COMMENT_ID'
+    },
+    file: {
+      id: 'FILE_ID'
+    },
+    signature: {
+      id: 'SIGNATURE_ID'
+    },
+    transaction: {
+      id: 'TRANSACTION_ID'
+    },
+    meet: {
+      session_key: 'MEET_ID or SESSION_KEY'
+    }  
+  }
 }  
 ```
 ##### Example:
